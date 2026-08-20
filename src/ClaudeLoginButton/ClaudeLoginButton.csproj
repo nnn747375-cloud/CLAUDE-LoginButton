@@ -6,7 +6,9 @@
     <Nullable>enable</Nullable>
     <AssemblyName>CLAUDE-LoginButton</AssemblyName>
     <RootNamespace>ClaudeLoginButton</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 </Project>
