@@ -5,15 +5,30 @@ namespace ClaudeLoginButton.Demo;
 
 internal sealed class DemoForm : Form
 {
+    private readonly IClaudeAuthProvider _authProvider;
     private readonly ClaudeLoginButton _button = new();
     private readonly Label _status = new();
     private readonly FlowLayoutPanel _messages = new();
     private readonly TextBox _composer = new();
     private readonly Button _send = new();
+    private readonly List<ClaudeMessage> _history = [];
+    private readonly ClaudeMessagesClient _claudeClient;
+    private ClaudeAuthSession? _session;
+    private bool _requestInFlight;
 
     public DemoForm()
     {
-        Text = "CLAUDE-LoginButton · demo";
+        _authProvider = string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
+            ? new ClaudeCliAuthProvider()
+            : new ClaudeApiKeyAuthProvider();
+
+        _claudeClient = new ClaudeMessagesClient(GetCredentialAsync)
+        {
+            Model = Environment.GetEnvironmentVariable("ANTHROPIC_MODEL") ?? "claude-sonnet-5",
+            MaxTokens = 1024,
+        };
+
+        Text = "CLAUDE-LoginButton · live demo";
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(860, 620);
         BackColor = Color.FromArgb(23, 25, 24);
@@ -24,7 +39,7 @@ internal sealed class DemoForm : Form
             Location = new Point(28, 28),
             Size = new Size(300, 564),
         };
-        var eyebrow = MakeLabel("AUTHENTICATION SURFACE", 9f, FontStyle.Bold, Color.FromArgb(156, 77, 56));
+        var eyebrow = MakeLabel("LIVE AUTHENTICATION", 9f, FontStyle.Bold, Color.FromArgb(156, 77, 56));
         eyebrow.Location = new Point(24, 24);
         eyebrow.AutoSize = true;
 
@@ -33,38 +48,35 @@ internal sealed class DemoForm : Form
         title.Size = new Size(245, 75);
 
         var copy = MakeLabel(
-            "A real control with a small conversation room beside it. The host application owns OAuth, callbacks and secure session storage.",
+            "This sample runs the official Claude CLI OAuth flow, then sends real Messages API requests from the host process.",
             10f,
             FontStyle.Regular,
             Color.FromArgb(111, 101, 93));
         copy.Location = new Point(26, 174);
-        copy.Size = new Size(244, 82);
+        copy.Size = new Size(244, 100);
 
         _button.Location = new Point(24, 300);
         _button.Size = new Size(252, 56);
-        _button.LoginRequested += async (_, _) => await SimulateLoginAsync();
-        _button.LogoutRequested += (_, _) =>
-        {
-            _button.SetSignedOut();
-            SetChatEnabled(false);
-            _status.Text = "Signed out. Ready for a fresh host flow.";
-            AddMessage("Claude", "Signed out. The chat is waiting for the next connection.", false);
-        };
+        _button.LoginRequested += async (_, _) => await SignInAsync();
+        _button.LogoutRequested += async (_, _) => await SignOutAsync();
 
         var openClaude = new LinkLabel
         {
             AutoSize = true,
-            Text = "Open official Claude sign-in ↗",
+            Text = "Open Claude Console ↗",
             LinkColor = Color.FromArgb(156, 77, 56),
             ActiveLinkColor = Color.FromArgb(48, 93, 70),
             Location = new Point(26, 390),
         };
-        openClaude.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://claude.ai/login") { UseShellExecute = true });
+        openClaude.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://console.anthropic.com/") { UseShellExecute = true });
 
-        _status.AutoSize = true;
-        _status.Text = "Preview host: simulated auth state.";
+        _status.AutoSize = false;
+        _status.Text = _authProvider is ClaudeApiKeyAuthProvider
+            ? "ANTHROPIC_API_KEY found. Click to connect."
+            : "Install the official 'ant' CLI, then click the button.";
         _status.ForeColor = Color.FromArgb(111, 101, 93);
         _status.Location = new Point(26, 452);
+        _status.Size = new Size(244, 70);
         _status.Font = new Font("Segoe UI", 9f);
 
         authCard.Controls.AddRange([eyebrow, title, copy, _button, openClaude, _status]);
@@ -75,7 +87,7 @@ internal sealed class DemoForm : Form
             Location = new Point(346, 28),
             Size = new Size(486, 564),
         };
-        var chatEyebrow = MakeLabel("CLAUDE · MINI CHAT", 9f, FontStyle.Bold, Color.FromArgb(217, 119, 87));
+        var chatEyebrow = MakeLabel("CLAUDE · LIVE CHAT", 9f, FontStyle.Bold, Color.FromArgb(217, 119, 87));
         chatEyebrow.Location = new Point(24, 24);
         chatEyebrow.AutoSize = true;
 
@@ -101,26 +113,25 @@ internal sealed class DemoForm : Form
         _composer.Enabled = false;
         _composer.KeyDown += ComposerKeyDown;
 
-        _send.Location = new Point(382, 460);
-        _send.Size = new Size(80, 40);
+        _send.Location = new Point(384, 460);
+        _send.Size = new Size(78, 40);
         _send.Text = "Send ↗";
         _send.FlatStyle = FlatStyle.Flat;
         _send.FlatAppearance.BorderSize = 0;
-        _send.BackColor = Color.FromArgb(244, 239, 231);
+        _send.BackColor = Color.FromArgb(217, 119, 87);
         _send.ForeColor = Color.FromArgb(23, 25, 24);
         _send.Enabled = false;
         _send.Click += async (_, _) => await SendMessageAsync();
 
-        var chatNote = MakeLabel("Preview replies are local until your host supplies the real chat client.", 8f, FontStyle.Regular, Color.FromArgb(143, 134, 126));
+        var chatNote = MakeLabel("Live requests stay in this host process and use your active Claude CLI credential.", 8f, FontStyle.Regular, Color.FromArgb(143, 134, 126));
         chatNote.Location = new Point(24, 518);
         chatNote.Size = new Size(438, 28);
 
         chatCard.Controls.AddRange([chatEyebrow, chatTitle, _messages, _composer, _send, chatNote]);
         Controls.AddRange([authCard, chatCard]);
 
-        AddMessage("Claude", "Hi. Connect the button, then ask me something.", false);
-        AddMessage("You", "What does this button own?", true);
-        AddMessage("Claude", "Focus, loading, connected and error states. Your host owns auth, tokens and the session.", false);
+        AddMessage("Claude", "Install the official ant CLI, connect above, then ask me something.", false);
+        AddMessage("Claude", "This demo no longer fakes a connected state or a reply.", false);
     }
 
     private static Label MakeLabel(string text, float size, FontStyle style, Color color, string family = "Segoe UI")
@@ -153,22 +164,80 @@ internal sealed class DemoForm : Form
         _messages.ScrollControlIntoView(message);
     }
 
-    private async Task SimulateLoginAsync()
+    private Task<ClaudeCredential> GetCredentialAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _session is null
+            ? Task.FromException<ClaudeCredential>(new InvalidOperationException("Connect Claude before sending a message."))
+            : Task.FromResult(_session.Credential);
+    }
+
+    private async Task SignInAsync()
     {
         _button.SetSigningIn();
-        _status.Text = "Waiting for a simulated callback…";
-        await Task.Delay(650);
-        _button.SetConnected("Claude connected");
-        _status.Text = "Connected preview. Replace with your validated auth result.";
-        SetChatEnabled(true);
-        AddMessage("Claude", "Connected. The control is ready, and this tiny room is listening.", false);
-        _composer.Focus();
+        SetChatEnabled(false);
+        _status.Text = "Opening the official Claude Console OAuth flow…";
+
+        try
+        {
+            _session = await _authProvider.SignInAsync();
+            _button.SetConnected(_session.AccountLabel);
+            _status.Text = "Connected. Messages now use the live Claude API.";
+            SetChatEnabled(true);
+            _history.Clear();
+            _history.Add(new ClaudeMessage("assistant", "Connected through your local Claude Console session. Ask me something."));
+            AddMessage("Claude", "Connected through your local Claude Console session. Ask me something.", false);
+            _composer.Focus();
+        }
+        catch (OperationCanceledException)
+        {
+            _session = null;
+            _button.SetSignedOut();
+            _status.Text = "Login canceled.";
+        }
+        catch (Exception exception)
+        {
+            _session = null;
+            _button.SetError();
+            _status.Text = exception.Message;
+            AddMessage("System", exception.Message, false);
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        if (_session is null)
+        {
+            _button.SetSignedOut();
+            return;
+        }
+
+        _send.Enabled = false;
+        _composer.Enabled = false;
+        try
+        {
+            await _authProvider.SignOutAsync();
+            _status.Text = "Signed out. The stored Claude CLI credential was removed.";
+            AddMessage("Claude", "Signed out. Connect again when you are ready.", false);
+        }
+        catch (Exception exception)
+        {
+            _status.Text = exception.Message;
+            AddMessage("System", exception.Message, false);
+        }
+        finally
+        {
+            _session = null;
+            _history.Clear();
+            _button.SetSignedOut();
+            SetChatEnabled(false);
+        }
     }
 
     private void SetChatEnabled(bool enabled)
     {
-        _composer.Enabled = enabled;
-        _send.Enabled = enabled;
+        _composer.Enabled = enabled && !_requestInFlight;
+        _send.Enabled = enabled && !_requestInFlight;
         _composer.PlaceholderText = enabled ? "Ask Claude something…" : "Connect Claude to chat…";
     }
 
@@ -184,17 +253,34 @@ internal sealed class DemoForm : Form
     private async Task SendMessageAsync()
     {
         var text = _composer.Text.Trim();
-        if (string.IsNullOrWhiteSpace(text) || !_composer.Enabled)
+        if (string.IsNullOrWhiteSpace(text) || _session is null || _requestInFlight)
         {
             return;
         }
 
+        _requestInFlight = true;
+        SetChatEnabled(true);
         _composer.Clear();
-        _send.Enabled = false;
         AddMessage("You", text, true);
-        await Task.Delay(350);
-        AddMessage("Claude", "This is a local demo reply. Wire your host's validated Claude client here for live responses.", false);
-        _send.Enabled = true;
-        _composer.Focus();
+        _history.Add(new ClaudeMessage("user", text));
+
+        try
+        {
+            var reply = await _claudeClient.SendAsync(_history);
+            _history.Add(new ClaudeMessage("assistant", reply));
+            AddMessage("Claude", reply, false);
+            _status.Text = "Live Claude response received.";
+        }
+        catch (Exception exception)
+        {
+            AddMessage("System", exception.Message, false);
+            _status.Text = "The live Claude request failed.";
+        }
+        finally
+        {
+            _requestInFlight = false;
+            SetChatEnabled(_session is not null);
+            _composer.Focus();
+        }
     }
 }
