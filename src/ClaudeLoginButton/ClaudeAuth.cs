@@ -31,7 +31,6 @@ public class ClaudeCodeCliAuthProvider : IClaudeAuthProvider
                     "-p",
                     "Reply with exactly CLAUDE_LOGIN_OK. Do not inspect files and do not use tools.",
                     "--output-format", "json",
-                    "--max-turns", "1",
                     "--permission-mode", "plan",
                     "--tools", "",
                     "--safe-mode",
