@@ -23,10 +23,17 @@ function sendJson(response, status, payload) {
 
 function runAnt(argumentsList) {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(antExecutable, argumentsList, {
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let child;
+    try {
+      child = spawn(antExecutable, argumentsList, {
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: process.platform === "win32",
+      });
+    } catch {
+      rejectPromise(new Error("The official 'ant' CLI is not installed or not on PATH."));
+      return;
+    }
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => { stdout += chunk; });
@@ -59,10 +66,17 @@ async function getCredential() {
 function startLogin() {
   if (loginProcess) return;
   lastAuthError = null;
-  loginProcess = spawn(antExecutable, ["auth", "login"], {
-    stdio: "inherit",
-    windowsHide: false,
-  });
+  try {
+    loginProcess = spawn(antExecutable, ["auth", "login"], {
+      stdio: "inherit",
+      windowsHide: false,
+      shell: process.platform === "win32",
+    });
+  } catch {
+    lastAuthError = "The official 'ant' CLI is not installed or not on PATH.";
+    loginProcess = null;
+    return;
+  }
   loginProcess.once("error", () => {
     lastAuthError = "The official 'ant' CLI is not installed or not on PATH.";
     loginProcess = null;
