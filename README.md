@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>A Claude-styled, reusable WinForms login surface with an interactive mini-chat demo.</strong><br />
+  <strong>A Claude-styled, reusable WinForms login surface with a live Claude chat host.</strong><br />
   <sub>Independent · host-owned auth · not affiliated with Anthropic</sub>
 </p>
 
@@ -16,17 +16,23 @@
   <img src="https://img.shields.io/badge/license-MIT-176B5B" alt="MIT license" />
 </p>
 
-## Open the interactive demo
+## Use the real button
 
-Run the browser demo locally to try the actual button states and mini chat. The page is responsive, keyboard-friendly and uses no credentials in the browser. GitHub Pages is not enabled because this repository is private.
+The repository contains two deliberate modes:
 
-The `Open Claude sign-in` action opens the official Claude page in a separate tab. A static GitHub page cannot read Claude.ai cookies or turn that browser session into API access. For real account authorization, connect the button to an approved host-side auth flow.
+- `python -m http.server 4173 --directory docs` opens a credential-free UI preview.
+- `node examples/LocalHost/server.mjs` starts a real local host. The button runs
+  Anthropic's official `ant auth login` OAuth flow and the chat sends real
+  Messages API requests without exposing the credential to the browser.
+
+Install the official [`ant` CLI](https://platform.claude.com/docs/en/cli-sdks-libraries/cli/quickstart) first. GitHub Pages is not enabled because this repository is private.
 
 ## The important boundary
 
-This repository contains a UI control and integration guidance. The button
-does **not** authenticate users by itself, issue tokens, store credentials or
-grant access to Claude services. Your application supplies the auth service.
+This repository contains a UI control plus an optional host-side integration.
+The control never stores credentials. `ClaudeCliAuthProvider` delegates login
+to the official `ant` CLI, and `ClaudeMessagesClient` sends requests from the
+host process after the host has received a credential.
 
 That separation keeps the control reusable and prevents credentials from
 leaking into a UI library.
@@ -34,17 +40,20 @@ leaking into a UI library.
 ## What is included
 
 - `ClaudeLoginButton`: signed-out, signing-in, connected and error states
+- `ClaudeCliAuthProvider`: real browser OAuth through the official `ant` CLI
+- `ClaudeApiKeyAuthProvider`: host-side API-key mode for secret managers
+- `ClaudeMessagesClient`: real Claude Messages API client
 - keyboard activation, visible focus and accessible naming
 - Claude-inspired mark, typography and state styling with no provider credential handling
-- an interactive browser demo with a small local mini chat
-- a WinForms demo with the same login surface and mini-chat layout
+- a credential-free browser preview with a small local mini chat
+- a live local browser host and a WinForms demo with real chat requests
 - source project, documentation and CI build
 
 ## Requirements
 
 - Windows 10 or newer
 - .NET 9 Windows Forms
-- your own provider-supported authorization flow
+- the official `ant` CLI for browser OAuth, or a host-managed API key
 - an exact, configured callback/redirect URI
 - secure session storage owned by the host application
 
@@ -61,15 +70,21 @@ Or add the project reference to your WinForms application:
 <ProjectReference Include="path/to/ClaudeLoginButton.csproj" />
 ```
 
-## Five-minute integration
+## Five-minute WinForms integration
 
 ```csharp
 using ClaudeLoginButton;
 
+var auth = new ClaudeCliAuthProvider();
+ClaudeAuthSession? session = null;
 var button = new ClaudeLoginButton
 {
     Dock = DockStyle.Top,
 };
+var chat = new ClaudeMessagesClient(_ =>
+    session is null
+        ? Task.FromException<ClaudeCredential>(new InvalidOperationException("Not connected."))
+        : Task.FromResult(session.Credential));
 
 button.LoginRequested += async (_, _) =>
 {
@@ -77,9 +92,8 @@ button.LoginRequested += async (_, _) =>
 
     try
     {
-        // Your app starts and validates the provider-supported auth flow.
-        var session = await claudeAuth.StartAuthorizationAsync();
-        button.SetConnected(session.DisplayName ?? "Claude connected");
+        session = await auth.SignInAsync();
+        button.SetConnected(session.AccountLabel);
     }
     catch (OperationCanceledException)
     {
@@ -94,24 +108,25 @@ button.LoginRequested += async (_, _) =>
 
 button.LogoutRequested += async (_, _) =>
 {
-    await claudeAuth.SignOutAsync();
+    await auth.SignOutAsync();
+    session = null;
     button.SetSignedOut();
 };
 
 Controls.Add(button);
 ```
 
-Use `await` through the auth flow. Do not call `.Wait()` or `.Result` on the
-WinForms UI thread.
+Then call `await chat.SendAsync([new ClaudeMessage("user", "Hello")]);` from
+your message handler. Use `await` through the auth flow; do not call `.Wait()`
+or `.Result` on the WinForms UI thread.
 
 ## Expected flow
 
 1. The user activates the button.
-2. Your application creates a fresh authorization request.
-3. The provider page opens in the browser.
-4. Your callback handler validates the returned data.
-5. Your application creates a secure session.
-6. Only then does the host call `SetConnected(...)`.
+2. `ant auth login` opens the official Claude Console OAuth flow.
+3. The CLI stores the provider-managed credential locally and refreshes it when needed.
+4. The host asks the CLI for a short-lived access token.
+5. Only then does the host call `SetConnected(...)` and send Messages API requests.
 
 A button click is never proof of authentication.
 
@@ -130,9 +145,8 @@ Read the full [security boundary](docs/security.md).
 
 ## Demos
 
-The browser demo in `docs/` has real interactive button states and a small
-local mini chat. It does not contact a provider or contain credentials. Run
-it locally with:
+The browser preview in `docs/` has interactive UI states and local replies; it
+does not contact a provider or contain credentials. Run it with:
 
 ```bash
 python -m http.server 4173 --directory docs
@@ -140,25 +154,36 @@ python -m http.server 4173 --directory docs
 
 Then open `http://localhost:4173`.
 
-The WinForms demo also intentionally simulates a successful result. It does
-not contact a provider and does not contain credentials:
+The WinForms demo uses the official `ant` CLI and the live Messages API:
 
 ```bash
 dotnet run --project examples/WinFormsDemo/WinFormsDemo.csproj
 ```
 
-For a host-owned live flow, configure the browser adapter before loading the
-page:
+For the browser's live path, run:
+
+```bash
+node examples/LocalHost/server.mjs
+```
+
+Then open `http://127.0.0.1:4173` and click `Continue with Claude`. See the
+[local host guide](examples/LocalHost/README.md) for API-key mode and security
+details.
+
+For another host-owned live flow, configure the browser adapter before loading
+the page:
 
 ```html
 <script>
   window.CLAUDE_AUTH_URL = "/auth/start";
+  window.CLAUDE_AUTH_STATUS_URL = "/auth/status";
+  window.CLAUDE_AUTH_LOGOUT_URL = "/auth/logout";
   window.CLAUDE_CHAT_ENDPOINT = "/api/chat";
 </script>
 ```
 
 Those endpoints must run server-side. Do not put an Anthropic API key in a
-static page; see the [Claude API authentication docs](https://platform.claude.com/docs/en/api/overview#authentication).
+static page; see the [Claude API authentication docs](https://platform.claude.com/docs/en/manage-claude/authentication).
 
 ## Troubleshooting
 
