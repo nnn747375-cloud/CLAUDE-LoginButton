@@ -1,9 +1,7 @@
 # CLAUDE-LoginButton
 
 <p align="center">
-  <a href="https://nnn747375-cloud.github.io/CLAUDE-LoginButton/">
-    <img src="docs/preview.svg" alt="Open the interactive Claude login button and mini chat demo" width="820" />
-  </a>
+  <img src="docs/preview.svg" alt="Claude login button and mini chat demo preview" width="820" />
 </p>
 
 <p align="center">
@@ -20,7 +18,7 @@
 
 ## Open the interactive demo
 
-Use the [interactive Claude demo](https://nnn747375-cloud.github.io/CLAUDE-LoginButton/) to try the actual button states and mini chat. The page is responsive, keyboard-friendly and uses no credentials in the browser.
+Run the browser demo locally to try the actual button states and mini chat. The page is responsive, keyboard-friendly and uses no credentials in the browser. GitHub Pages is not enabled because this repository is private.
 
 The `Open Claude sign-in` action opens the official Claude page in a separate tab. A static GitHub page cannot read Claude.ai cookies or turn that browser session into API access. For real account authorization, connect the button to an approved host-side auth flow.
 
