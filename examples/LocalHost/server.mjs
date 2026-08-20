@@ -218,7 +218,12 @@ const server = createServer(async (request, response) => {
       if (process.env.ANTHROPIC_API_KEY?.trim()) {
         sendJson(response, 200, { state: "connected" });
       } else {
-        await runAnt(["--version"]);
+        try {
+          await runAnt(["--version"]);
+        } catch {
+          sendJson(response, 503, { message: "Install Anthropic's official 'ant' CLI and put it on PATH first." });
+          return;
+        }
         startLogin();
         sendJson(response, 200, { state: "pending" });
       }
