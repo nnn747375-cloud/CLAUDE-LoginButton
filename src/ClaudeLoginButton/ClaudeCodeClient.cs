@@ -36,7 +36,6 @@ public sealed class ClaudeCodeClient
                 "-p",
                 "Read the chat transcript from stdin and answer the latest USER message directly. Do not inspect files, use tools, or modify anything.",
                 "--output-format", "json",
-                "--max-turns", "1",
                 "--permission-mode", "plan",
                 "--tools", "",
                 "--safe-mode",
