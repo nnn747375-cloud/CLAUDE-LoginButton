@@ -173,21 +173,11 @@ internal static class ClaudeCliProcess
         startInfo.RedirectStandardError = true;
         startInfo.UseShellExecute = false;
         startInfo.CreateNoWindow = true;
-        foreach (var variable in new[]
-                 {
-                     "ANTHROPIC_API_KEY",
-                     "ANTHROPIC_AUTH_TOKEN",
-                     "ANTHROPIC_BASE_URL",
-                     "ANTHROPIC_MODEL",
-                     "ANTHROPIC_SMALL_FAST_MODEL",
-                     "ANTHROPIC_DEFAULT_OPUS_MODEL",
-                     "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
-                     "ANTHROPIC_DEFAULT_SONNET_MODEL",
-                     "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-                     "CLAUDE_CODE_USE_BEDROCK",
-                     "CLAUDE_CODE_USE_VERTEX",
-                     "ANTHROPIC_VERTEX_BASE_URL",
-                 })
+        var blockedPrefixes = new[] { "ANTHROPIC_", "CLAUDE_CODE_USE_" };
+        foreach (var variable in startInfo.Environment.Keys
+                     .Where(name => blockedPrefixes.Any(prefix =>
+                         name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                     .ToArray())
         {
             startInfo.Environment.Remove(variable);
         }
