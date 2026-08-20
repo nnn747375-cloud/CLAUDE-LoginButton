@@ -1,7 +1,9 @@
 # Security policy
 
-This project is a UI control and contains no credential storage or provider
-auth backend. Please do not report secrets in an issue.
+This project contains a UI control and optional local host adapters. The
+control does not store credentials. The included live host keeps credentials
+server-side and never returns them to the browser. Please do not report
+secrets in an issue.
 
 If you find a security issue in this repository, open a private GitHub
 security advisory instead of publishing tokens, callback codes or personal
