@@ -22,8 +22,12 @@
   let authState = "signed-out";
   let connected = false;
   let busy = false;
+  let authBusy = false;
+  const conversation = [];
 
   const hostAuthUrl = window.CLAUDE_AUTH_URL || "";
+  const hostAuthStatusUrl = window.CLAUDE_AUTH_STATUS_URL || "";
+  const hostLogoutUrl = window.CLAUDE_AUTH_LOGOUT_URL || "";
   const hostChatEndpoint = window.CLAUDE_CHAT_ENDPOINT || "";
 
   function setAuthState(nextState, label) {
@@ -35,7 +39,7 @@
     connected = isConnected;
     loginLabel.textContent = isConnected ? "Claude connected" : nextState === "connecting" ? "Signing in…" : nextState === "error" ? "Try Claude login again" : "Continue with Claude";
     loginButton.disabled = nextState === "connecting";
-    previewButton.classList.toggle("hidden", isConnected);
+    previewButton.classList.toggle("hidden", isConnected || Boolean(hostAuthUrl));
     logoutButton.classList.toggle("hidden", !isConnected);
     chatInput.disabled = !isConnected;
     sendButton.disabled = !isConnected;
@@ -76,7 +80,41 @@
     }, 550);
   }
 
-  function handleLogin() {
+  async function waitForHostAuth() {
+    if (!hostAuthStatusUrl) return;
+
+    const deadline = Date.now() + (5 * 60 * 1000);
+    while (Date.now() < deadline) {
+      const response = await fetch(hostAuthStatusUrl, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok || payload.state === "error") {
+        throw new Error(payload.message || `Auth status returned ${response.status}`);
+      }
+      if (payload.state === "connected") {
+        setAuthState("connected", payload.label || "Connected");
+        appendMessage("assistant", "Connected. The live host is ready for messages.");
+        chatInput.focus();
+        return;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    }
+
+    throw new Error("The browser authorization flow timed out.");
+  }
+
+  async function startHostAuth() {
+    const response = await fetch(hostAuthUrl, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message || `Auth start returned ${response.status}`);
+    if (payload.redirectUrl) {
+      window.location.assign(payload.redirectUrl);
+      return;
+    }
+    await waitForHostAuth();
+  }
+
+  async function handleLogin() {
+    if (authBusy) return;
     if (authState === "connected") {
       setAuthState("signed-out", "Signed out");
       appendMessage("assistant", "Signed out. The chat is waiting for the next connection.");
@@ -84,8 +122,16 @@
     }
 
     if (hostAuthUrl) {
+      authBusy = true;
       setAuthState("connecting", "Redirecting");
-      window.location.assign(hostAuthUrl);
+      try {
+        await startHostAuth();
+      } catch (error) {
+        setAuthState("error", "Auth failed");
+        appendMessage("assistant", `The host authorization flow failed: ${error.message}`);
+      } finally {
+        authBusy = false;
+      }
       return;
     }
 
@@ -93,6 +139,7 @@
   }
 
   function appendMessage(role, text) {
+    conversation.push({ role: role === "user" ? "user" : "assistant", content: text });
     const article = document.createElement("article");
     article.className = `message ${role === "user" ? "user-message" : "assistant-message"}`;
 
@@ -134,7 +181,7 @@
     const response = await fetch(hostChatEndpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text, messages: conversation.slice(-20) }),
     });
     if (!response.ok) throw new Error(`Chat endpoint returned ${response.status}`);
     const payload = await response.json();
@@ -165,9 +212,16 @@
     }
   }
 
-  loginButton.addEventListener("click", handleLogin);
+  loginButton.addEventListener("click", () => void handleLogin());
   previewButton.addEventListener("click", connectPreview);
-  logoutButton.addEventListener("click", () => {
+  logoutButton.addEventListener("click", async () => {
+    if (hostLogoutUrl) {
+      try {
+        await fetch(hostLogoutUrl, { method: "POST" });
+      } catch (error) {
+        appendMessage("assistant", `The host logout flow failed: ${error.message}`);
+      }
+    }
     setAuthState("signed-out", "Signed out");
     appendMessage("assistant", "Signed out. Your host can now start a fresh authorization attempt.");
   });
