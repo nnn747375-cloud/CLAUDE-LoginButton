@@ -32,9 +32,10 @@ public sealed class ClaudeCliAuthProvider : IClaudeAuthProvider
 
     public async Task<ClaudeAuthSession> SignInAsync(CancellationToken cancellationToken = default)
     {
+        Process? loginProcess = null;
         try
         {
-            using var loginProcess = StartInteractive(["auth", "login"]);
+            loginProcess = StartInteractive(["auth", "login"]);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(LoginTimeout);
             await loginProcess.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
@@ -47,7 +48,49 @@ public sealed class ClaudeCliAuthProvider : IClaudeAuthProvider
         }
         catch (OperationCanceledException)
         {
+            if (loginProcess is { HasExited: false })
+            {
+                try
+                {
+                    loginProcess.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // The CLI may have exited while cancellation was observed.
+                }
+            }
+
+            loginProcess?.Dispose();
             throw;
+        }
+        catch (Win32Exception exception)
+        {
+            loginProcess?.Dispose();
+            throw new InvalidOperationException(
+                $"The official Claude CLI was not found. Install 'ant' first, then try again. ({exception.Message})",
+                exception);
+        }
+        catch
+        {
+            loginProcess?.Dispose();
+            throw;
+        }
+
+        try
+        {
+            var token = await RunCapturedAsync(
+                ["auth", "print-credentials", "--access-token"],
+                cancellationToken).ConfigureAwait(false);
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException(
+                    "The Claude CLI did not return an access token. Run 'ant auth status' to inspect the active profile.");
+            }
+
+            return new ClaudeAuthSession(
+                "Claude connected",
+                new ClaudeCredential(token, ClaudeCredentialKind.BearerToken));
         }
         catch (Win32Exception exception)
         {
@@ -55,20 +98,10 @@ public sealed class ClaudeCliAuthProvider : IClaudeAuthProvider
                 $"The official Claude CLI was not found. Install 'ant' first, then try again. ({exception.Message})",
                 exception);
         }
-
-        var token = await RunCapturedAsync(
-            ["auth", "print-credentials", "--access-token"],
-            cancellationToken).ConfigureAwait(false);
-
-        if (string.IsNullOrWhiteSpace(token))
+        finally
         {
-            throw new InvalidOperationException(
-                "The Claude CLI did not return an access token. Run 'ant auth status' to inspect the active profile.");
+            loginProcess?.Dispose();
         }
-
-        return new ClaudeAuthSession(
-            "Claude connected",
-            new ClaudeCredential(token, ClaudeCredentialKind.BearerToken));
     }
 
     public async Task SignOutAsync(CancellationToken cancellationToken = default)
@@ -129,12 +162,11 @@ public sealed class ClaudeCliAuthProvider : IClaudeAuthProvider
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
         var output = await outputTask.ConfigureAwait(false);
-        var error = await errorTask.ConfigureAwait(false);
+        _ = await errorTask.ConfigureAwait(false);
         if (process.ExitCode != 0)
         {
-            var detail = string.IsNullOrWhiteSpace(error) ? "No additional details were returned." : error.Trim();
             throw new InvalidOperationException(
-                $"The Claude CLI command failed with exit code {process.ExitCode}: {detail}");
+                $"The Claude CLI command failed with exit code {process.ExitCode}. Check 'ant auth status' for details.");
         }
 
         return output.Trim();
