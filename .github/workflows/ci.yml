@@ -19,5 +19,3 @@ jobs:
         run: dotnet build src/ClaudeLoginButton/ClaudeLoginButton.csproj --configuration Release
       - name: Build demo
         run: dotnet build examples/WinFormsDemo/WinFormsDemo.csproj --configuration Release
-      - name: Publish standalone Windows EXE
-        run: dotnet publish examples/WinFormsDemo/WinFormsDemo.csproj --configuration Release --runtime win-x64 --self-contained true --output dist-ci
