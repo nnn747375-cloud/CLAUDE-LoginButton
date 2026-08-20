@@ -1,43 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="510" viewBox="0 0 920 510" role="img" aria-labelledby="title desc">
-  <title id="title">Claude Login Button interactive demo preview</title>
-  <desc id="desc">A dark Claude workspace with a Claude connection card and a mini conversation panel.</desc>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="510" viewBox="0 0 920 510">
   <rect width="920" height="510" rx="26" fill="#171918"/>
-  <circle cx="64" cy="38" r="5" fill="#D97757"/><circle cx="83" cy="38" r="5" fill="#C9A995"/><circle cx="102" cy="38" r="5" fill="#F4EFE7"/>
+  <circle cx="64" cy="38" r="5" fill="#D97757"/>
+  <circle cx="83" cy="38" r="5" fill="#C9A995"/>
+  <circle cx="102" cy="38" r="5" fill="#F4EFE7"/>
   <path d="M42 62h836" stroke="#3E403D"/>
   <path d="M60 132h270" stroke="#D97757"/>
-  <text x="60" y="168" fill="#D97757" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="2">INTERACTIVE COMPONENT GALLERY</text>
-  <text x="60" y="223" fill="#F4EFE7" font-family="Georgia,serif" font-size="48">A softer way in.</text>
-  <text x="60" y="253" fill="#BDB2A8" font-family="Arial,sans-serif" font-size="14">A Claude login surface with a small room to talk.</text>
+  <text x="60" y="168" fill="#D97757" font-family="Arial" font-size="10" font-weight="bold">INTERACTIVE COMPONENT GALLERY</text>
+  <text x="60" y="223" fill="#F4EFE7" font-family="Georgia" font-size="48">A softer way in.</text>
+  <text x="60" y="253" fill="#BDB2A8" font-family="Arial" font-size="14">A Claude login surface with a small room to talk.</text>
   <rect x="60" y="292" width="270" height="155" rx="18" fill="#F4EFE7"/>
-  <text x="84" y="320" fill="#9C4D38" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5">AUTHENTICATION SURFACE</text>
-  <text x="84" y="360" fill="#171918" font-family="Georgia,serif" font-size="27">claude</text>
+  <text x="84" y="320" fill="#9C4D38" font-family="Arial" font-size="9" font-weight="bold">AUTHENTICATION SURFACE</text>
+  <text x="84" y="360" fill="#171918" font-family="Georgia" font-size="27">claude</text>
   <rect x="84" y="382" width="222" height="43" rx="11" fill="#D97757"/>
-  <text x="195" y="408" text-anchor="middle" fill="#FFFAF5" font-family="Arial,sans-serif" font-size="12" font-weight="700">✦  Continue with Claude</text>
+  <text x="195" y="408" text-anchor="middle" fill="#FFFAF5" font-family="Arial" font-size="12" font-weight="bold">Continue with Claude</text>
   <rect x="350" y="132" width="510" height="315" rx="18" fill="#252826" stroke="#3E403D"/>
-  <text x="374" y="164" fill="#D97757" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5">CLAUDE · MINI CHAT</text>
-  <text x="374" y="200" fill="#F4EFE7" font-family="Georgia,serif" font-size="27">A small room for a real conversation.</text>
+  <text x="374" y="164" fill="#D97757" font-family="Arial" font-size="9" font-weight="bold">CLAUDE - MINI CHAT</text>
+  <text x="374" y="200" fill="#F4EFE7" font-family="Georgia" font-size="27">A small room for a real conversation.</text>
   <rect x="374" y="228" width="280" height="62" rx="11" fill="#F4EFE7"/>
-  <text x="390" y="250" fill="#9C4D38" font-family="Arial,sans-serif" font-size="9" font-weight="700">✦ CLAUDE</text>
-  <text x="390" y="273" fill="#171918" font-family="Arial,sans-serif" font-size="11">Connect the host flow, then ask me something.</text>
+  <text x="390" y="250" fill="#9C4D38" font-family="Arial" font-size="9" font-weight="bold">CLAUDE</text>
+  <text x="390" y="273" fill="#171918" font-family="Arial" font-size="11">Connect the host flow, then ask me something.</text>
   <rect x="526" y="301" width="260" height="52" rx="11" fill="#3B3E3A"/>
-  <text x="545" y="323" fill="#D1B8AC" font-family="Arial,sans-serif" font-size="9" font-weight="700">YOU</text>
-  <text x="545" y="342" fill="#FFFAF5" font-family="Arial,sans-serif" font-size="11">What does the button own?</text>
+  <text x="545" y="323" fill="#D1B8AC" font-family="Arial" font-size="9" font-weight="bold">YOU</text>
+  <text x="545" y="342" fill="#FFFAF5" font-family="Arial" font-size="11">What does the button own?</text>
   <rect x="374" y="376" width="486" height="44" rx="10" fill="#1C1E1C" stroke="#555954"/>
-  <text x="390" y="403" fill="#81776F" font-family="Arial,sans-serif" font-size="11">Ask something…</text>
-</svg>
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="286" viewBox="0 0 760 286" role="img" aria-labelledby="title desc">
-  <title id="title">CLAUDE-LoginButton preview</title>
-  <desc id="desc">A warm cream preview card showing the Continue with Claude button in idle, loading and connected states.</desc>
-  <rect width="760" height="286" rx="24" fill="#F7F3ED"/>
-  <path d="M42 42h676" stroke="#D9CFC5"/>
-  <circle cx="66" cy="31" r="5" fill="#D97757"/><circle cx="84" cy="31" r="5" fill="#C9A995"/><circle cx="102" cy="31" r="5" fill="#292624"/>
-  <text x="42" y="92" fill="#292624" font-family="Georgia,serif" font-size="26" font-weight="700">A softer way in.</text>
-  <text x="42" y="120" fill="#6F6258" font-family="Arial,sans-serif" font-size="13">A reusable WinForms control. Your app owns the auth flow.</text>
-  <rect x="42" y="154" width="208" height="54" rx="14" fill="#FFF7EF" stroke="#B54E32"/>
-  <text x="146" y="187" text-anchor="middle" fill="#6C3022" font-family="Arial,sans-serif" font-size="14">Continue with Claude</text>
-  <rect x="276" y="154" width="190" height="54" rx="14" fill="#F6FBF7" stroke="#438058"/>
-  <text x="371" y="187" text-anchor="middle" fill="#275D39" font-family="Arial,sans-serif" font-size="14">Claude connected</text>
-  <rect x="492" y="154" width="208" height="54" rx="14" fill="#EBE5DE" stroke="#BEB1A5"/>
-  <text x="596" y="187" text-anchor="middle" fill="#7D7167" font-family="Arial,sans-serif" font-size="14">Signing in…</text>
-  <text x="42" y="246" fill="#7A2E12" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.2">CLAUDE · ACCESSIBLE · EVENT-DRIVEN</text>
+  <text x="390" y="403" fill="#81776F" font-family="Arial" font-size="11">Ask something</text>
 </svg>
