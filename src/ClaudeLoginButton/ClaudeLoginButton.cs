@@ -35,7 +35,7 @@ public sealed class ClaudeLoginButton : Control
         AccessibleRole = AccessibleRole.PushButton;
         AccessibleName = "Continue with Claude";
         Cursor = Cursors.Hand;
-        Font = new Font("Segoe UI", 10f, FontStyle.Regular);
+        Font = new Font("Georgia", 10f, FontStyle.Regular);
         MinimumSize = new Size(220, 48);
         Size = new Size(280, 54);
         TabStop = true;
@@ -147,13 +147,23 @@ public sealed class ClaudeLoginButton : Control
         e.Graphics.DrawPath(border, path);
 
         var text = CurrentText();
+        var markSize = Math.Min(18, Math.Max(14, bounds.Height - 25));
+        const int markGap = 9;
+        var textSize = TextRenderer.MeasureText(text, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
+        var groupWidth = markSize + markGap + textSize.Width;
+        var groupX = Math.Max(bounds.X + 12, bounds.X + ((bounds.Width - groupWidth) / 2));
+        var markBounds = new Rectangle(groupX, bounds.Y + ((bounds.Height - markSize) / 2), markSize, markSize);
+        DrawClaudeMark(e.Graphics, markBounds, palette.Text);
+
         using var textBrush = new SolidBrush(palette.Text);
         using var format = new StringFormat
         {
-            Alignment = StringAlignment.Center,
+            Alignment = StringAlignment.Near,
             LineAlignment = StringAlignment.Center,
+            Trimming = StringTrimming.EllipsisCharacter,
         };
-        e.Graphics.DrawString(text, Font, textBrush, bounds, format);
+        var textBounds = new Rectangle(groupX + markSize + markGap, bounds.Y, Math.Max(1, bounds.Right - groupX - markSize - markGap), bounds.Height);
+        e.Graphics.DrawString(text, Font, textBrush, textBounds, format);
 
         if (Focused)
         {
@@ -223,6 +233,29 @@ public sealed class ClaudeLoginButton : Control
         }
 
         return (_hovered ? Color.FromArgb(255, 238, 226) : Color.FromArgb(255, 247, 239), Color.FromArgb(181, 78, 50), Color.FromArgb(108, 48, 34), Color.FromArgb(181, 78, 50));
+    }
+
+    private static void DrawClaudeMark(Graphics graphics, Rectangle bounds, Color color)
+    {
+        var center = new PointF(bounds.Left + (bounds.Width / 2f), bounds.Top + (bounds.Height / 2f));
+        var radius = Math.Max(3f, bounds.Width / 2f);
+        using var pen = new Pen(color, Math.Max(1.2f, bounds.Width / 8f))
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+        };
+
+        for (var index = 0; index < 6; index++)
+        {
+            var angle = (Math.PI / 3d * index) - (Math.PI / 2d);
+            var end = new PointF(
+                center.X + (float)(Math.Cos(angle) * radius),
+                center.Y + (float)(Math.Sin(angle) * radius));
+            graphics.DrawLine(pen, center, end);
+        }
+
+        using var dot = new SolidBrush(color);
+        graphics.FillEllipse(dot, center.X - 1.5f, center.Y - 1.5f, 3f, 3f);
     }
 
     private static GraphicsPath RoundedRectangle(Rectangle rectangle, int radius)
