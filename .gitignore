@@ -1,6 +1,5 @@
 bin/
 obj/
-dist-ci/
 .vs/
 *.user
 *.suo
