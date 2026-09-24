@@ -1,17 +1,8 @@
-$ErrorActionPreference = "Stop"
-
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    throw "Node.js 18+ is required. Install it from https://nodejs.org/ first."
+$ErrorActionPreference = 'Stop'
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    throw 'Install Claude Code from https://code.claude.com/docs/en/setup, then run Launch.cmd.'
 }
-
-if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-    throw "npm is required. Reinstall Node.js 18+ and open a new PowerShell window."
-}
-
-Write-Host "Installing the official Claude Code package..."
-& npm install -g @anthropic-ai/claude-code
-if ($LASTEXITCODE -ne 0) {
-    throw "Claude Code installation failed with exit code $LASTEXITCODE."
-}
-
-Write-Host "Claude Code is installed. Run 'claude' in a new PowerShell window to finish login."
+Write-Host 'Installing the official native Claude Code package...'
+& winget install --id Anthropic.ClaudeCode --exact --source winget
+if ($LASTEXITCODE -ne 0) { throw "Claude Code installation exited with code $LASTEXITCODE." }
+Write-Host 'Open Launch.cmd and click Continue with Claude to sign in.'
