@@ -21,6 +21,7 @@ public sealed class ClaudeLoginButton : Control
     private ClaudeLoginState _state = ClaudeLoginState.SignedOut;
     private string? _accountLabel;
     private bool _hovered;
+    private bool _keyboardActivation;
 
     public ClaudeLoginButton()
     {
@@ -66,7 +67,7 @@ public sealed class ClaudeLoginButton : Control
 
     public void PerformLogin()
     {
-        if (_state != ClaudeLoginState.SigningIn)
+        if (Enabled && _state != ClaudeLoginState.SigningIn && _state != ClaudeLoginState.Connected)
         {
             LoginRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -74,7 +75,7 @@ public sealed class ClaudeLoginButton : Control
 
     public void PerformLogout()
     {
-        if (_state == ClaudeLoginState.Connected)
+        if (Enabled && _state == ClaudeLoginState.Connected)
         {
             LogoutRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -82,6 +83,7 @@ public sealed class ClaudeLoginButton : Control
 
     protected override void OnClick(EventArgs e)
     {
+        if (!Enabled) return;
         base.OnClick(e);
         if (_state == ClaudeLoginState.Connected)
         {
@@ -97,12 +99,42 @@ public sealed class ClaudeLoginButton : Control
     {
         if (e.KeyCode is Keys.Enter or Keys.Space)
         {
-            PerformClickFromKeyboard();
+            if (!_keyboardActivation)
+            {
+                _keyboardActivation = true;
+                PerformClickFromKeyboard();
+            }
             e.Handled = true;
             e.SuppressKeyPress = true;
         }
 
         base.OnKeyDown(e);
+    }
+
+    protected override bool IsInputKey(Keys keyData)
+        => (keyData & Keys.KeyCode) is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.KeyCode is Keys.Enter or Keys.Space) _keyboardActivation = false;
+        base.OnKeyUp(e);
+    }
+
+    protected override void OnEnabledChanged(EventArgs e)
+    {
+        _keyboardActivation = false;
+        base.OnEnabledChanged(e);
+    }
+
+    protected override AccessibleObject CreateAccessibilityInstance() => new LoginAccessibleObject(this);
+
+    private sealed class LoginAccessibleObject(ClaudeLoginButton owner) : ControlAccessibleObject(owner)
+    {
+        public override string DefaultAction => owner.State == ClaudeLoginState.Connected ? "Disconnect" : "Sign in";
+        public override void DoDefaultAction()
+        {
+            if (owner.Enabled) owner.OnClick(EventArgs.Empty);
+        }
     }
 
     protected override void OnMouseEnter(EventArgs e)
@@ -127,6 +159,7 @@ public sealed class ClaudeLoginButton : Control
 
     protected override void OnLostFocus(EventArgs e)
     {
+        _keyboardActivation = false;
         Invalidate();
         base.OnLostFocus(e);
     }
