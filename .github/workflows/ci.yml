@@ -19,3 +19,5 @@ jobs:
         run: dotnet build src/ClaudeLoginButton/ClaudeLoginButton.csproj --configuration Release
       - name: Build demo
         run: dotnet build examples/WinFormsDemo/WinFormsDemo.csproj --configuration Release
+      - name: Test process protocol and authentication flow
+        run: dotnet run --project tests/SmokeTests/SmokeTests.csproj --configuration Release
